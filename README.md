@@ -6,7 +6,7 @@ IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2023\
 [[arXiv]]
 
 <p align="center">
-<img src="key_idea.pdf" width="50%">
+<img src="key_idea.png" width="50%">
 </p>
 
 ## Abstract
