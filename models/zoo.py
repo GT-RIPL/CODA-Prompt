@@ -6,6 +6,7 @@ import torchvision.models as models
 from torch.autograd import Variable
 from .vit import VisionTransformer
 import numpy as np
+import copy
 
 # Our method!
 class CodaPrompt(nn.Module):
@@ -19,10 +20,20 @@ class CodaPrompt(nn.Module):
 
         # e prompt init
         for e in self.e_layers:
+            # for model saving/loading simplicity, we init the full paramaters here
+            # however, please note that we reinit the new components at each task
+            # in the "spirit of continual learning", as we don't know how many tasks
+            # we will encounter at the start of the task sequence
+            #
+            # in the original paper, we used ortho init at the start - this modification is more 
+            # fair in the spirit of continual learning and has little affect on performance
             e_l = self.e_p_length
-            p = tensor_prompt(self.e_pool_size, e_l, emb_d, ortho=True)
-            k = tensor_prompt(self.e_pool_size, self.key_d, ortho=True)
-            a = tensor_prompt(self.e_pool_size, self.key_d, ortho=True)
+            p = tensor_prompt(self.e_pool_size, e_l, emb_d)
+            k = tensor_prompt(self.e_pool_size, self.key_d)
+            a = tensor_prompt(self.e_pool_size, self.key_d)
+            p = self.gram_schmidt(p)
+            k = self.gram_schmidt(k)
+            a = self.gram_schmidt(a)
             setattr(self, f'e_p_{e}',p)
             setattr(self, f'e_k_{e}',k)
             setattr(self, f'e_a_{e}',a)
@@ -39,6 +50,85 @@ class CodaPrompt(nn.Module):
         
     def process_task_count(self):
         self.task_count += 1
+
+        # in the spirit of continual learning, we will reinit the new components
+        # for the new task with Gram Schmidt
+        #
+        # in the original paper, we used ortho init at the start - this modification is more 
+        # fair in the spirit of continual learning and has little affect on performance
+        # 
+        # code for this function is modified from:
+        # https://github.com/legendongary/pytorch-gram-schmidt/blob/master/gram_schmidt.py
+        for e in self.e_layers:
+            K = getattr(self,f'e_k_{e}')
+            A = getattr(self,f'e_a_{e}')
+            P = getattr(self,f'e_p_{e}')
+            k = self.gram_schmidt(K)
+            a = self.gram_schmidt(A)
+            p = self.gram_schmidt(P)
+            setattr(self, f'e_p_{e}',p)
+            setattr(self, f'e_k_{e}',k)
+            setattr(self, f'e_a_{e}',a)
+
+    # code for this function is modified from:
+    # https://github.com/legendongary/pytorch-gram-schmidt/blob/master/gram_schmidt.py
+    def gram_schmidt(self, vv):
+
+        def projection(u, v):
+            denominator = (u * u).sum()
+
+            if denominator < 1e-8:
+                return None
+            else:
+                return (v * u).sum() / denominator * u
+
+        # check if the tensor is 3D and flatten the last two dimensions if necessary
+        is_3d = len(vv.shape) == 3
+        if is_3d:
+            shape_2d = copy.deepcopy(vv.shape)
+            vv = vv.view(vv.shape[0],-1)
+
+        # swap rows and columns
+        vv = vv.T
+
+        # process matrix size
+        nk = vv.size(1)
+        uu = torch.zeros_like(vv, device=vv.device)
+
+        # get starting point
+        pt = int(self.e_pool_size / (self.n_tasks))
+        s = int(self.task_count * pt)
+        f = int((self.task_count + 1) * pt)
+        if s > 0:
+            uu[:, 0:s] = vv[:, 0:s].clone()
+        for k in range(s, f):
+            redo = True
+            while redo:
+                redo = False
+                vk = torch.randn_like(vv[:,k]).to(vv.device)
+                uk = 0
+                for j in range(0, k):
+                    if not redo:
+                        uj = uu[:, j].clone()
+                        proj = projection(uj, vk)
+                        if proj is None:
+                            redo = True
+                            print('restarting!!!')
+                        else:
+                            uk = uk + proj
+                if not redo: uu[:, k] = vk - uk
+        for k in range(s, f):
+            uk = uu[:, k].clone()
+            uu[:, k] = uk / (uk.norm())
+
+        # undo swapping of rows and columns
+        uu = uu.T 
+
+        # return from 2D
+        if is_3d:
+            uu = uu.view(shape_2d)
+        
+        return torch.nn.Parameter(uu) 
 
     def forward(self, x_querry, l, x_block, train=False, task_id=None):
 
@@ -87,10 +177,9 @@ class CodaPrompt(nn.Module):
 
             # ortho penalty
             if train and self.ortho_mu > 0:
-                loss = ortho_penalty(K)
-                loss += ortho_penalty(A)
-                loss += ortho_penalty(p.flatten(start_dim=1,end_dim=2))
-                loss = loss * self.ortho_mu
+                loss = ortho_penalty(K) * self.ortho_mu
+                loss += ortho_penalty(A) * self.ortho_mu
+                loss += ortho_penalty(p.view(p.shape[0], -1)) * self.ortho_mu
             else:
                 loss = 0
         else:
@@ -106,7 +195,7 @@ class CodaPrompt(nn.Module):
         return p_return, loss, x_block
 
 def ortho_penalty(t):
-    return ((t @t.T - torch.eye(t.shape[0]).cuda())**2).mean() * 1e-6
+    return ((t @t.T - torch.eye(t.shape[0]).cuda())**2).mean()
 
 # @article{wang2022dualprompt,
 #   title={DualPrompt: Complementary Prompting for Rehearsal-free Continual Learning},
@@ -261,9 +350,9 @@ def tensor_prompt(a, b, c=None, ortho=False):
         nn.init.uniform_(p)
     return p    
 
-class ResNetZoo(nn.Module):
+class ViTZoo(nn.Module):
     def __init__(self, num_classes=10, pt=False, prompt_flag=False, prompt_param=None):
-        super(ResNetZoo, self).__init__()
+        super(ViTZoo, self).__init__()
 
         # get last layer
         self.last = nn.Linear(512, num_classes)
@@ -318,5 +407,5 @@ class ResNetZoo(nn.Module):
             return out
             
 def vit_pt_imnet(out_dim, block_division = None, prompt_flag = 'None', prompt_param=None):
-    return ResNetZoo(num_classes=out_dim, pt=True, prompt_flag=prompt_flag, prompt_param=prompt_param)
+    return ViTZoo(num_classes=out_dim, pt=True, prompt_flag=prompt_flag, prompt_param=prompt_param)
 

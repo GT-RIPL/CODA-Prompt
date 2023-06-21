@@ -1,14 +1,14 @@
-# bash experiments/cifar-100.sh
+# bash experiments/imagenet-r.sh
 # experiment settings
-DATASET=cifar-100
+DATASET=ImageNet_R
 N_CLASS=200
 
 # save directory
-OUTDIR=outputs/${DATASET}/10-task
+OUTDIR=outputs/${DATASET}/20-task
 
 # hard coded inputs
 GPUID='0 1 2 3'
-CONFIG=configs/cifar-100_prompt.yaml
+CONFIG=configs/imnet-r_prompt_long.yaml
 REPEAT=1
 OVERWRITE=0
 
@@ -36,7 +36,7 @@ python -u run.py --config $CONFIG --gpuid $GPUID --repeat $REPEAT --overwrite $O
 #    arg 3 = g-prompt pool length
 python -u run.py --config $CONFIG --gpuid $GPUID --repeat $REPEAT --overwrite $OVERWRITE \
     --learner_type prompt --learner_name DualPrompt \
-    --prompt_param 10 20 6 \
+    --prompt_param 20 20 6 \
     --log_dir ${OUTDIR}/dual-prompt
 
 # L2P++
@@ -49,4 +49,3 @@ python -u run.py --config $CONFIG --gpuid $GPUID --repeat $REPEAT --overwrite $O
     --learner_type prompt --learner_name L2P \
     --prompt_param 30 20 -1 \
     --log_dir ${OUTDIR}/l2p++
-

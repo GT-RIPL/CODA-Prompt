@@ -254,6 +254,15 @@ class Trainer:
             
         for i in range(self.max_task):
 
+            # increment task id in prompting modules
+            if i > 0:
+                try:
+                    if self.learner.model.module.prompt is not None:
+                        self.learner.model.module.prompt.process_task_count()
+                except:
+                    if self.learner.model.prompt is not None:
+                        self.learner.model.prompt.process_task_count()
+
             # load model
             model_save_dir = self.model_top_dir + '/models/repeat-'+str(self.seed+1)+'/task-'+self.task_names[i]+'/'
             self.learner.task_count = i 
@@ -266,15 +275,6 @@ class Trainer:
                 self.learner.model.module.task_id = i
             except:
                 self.learner.model.task_id = i
-
-            # frequency table process
-            if i > 0:
-                try:
-                    if self.learner.model.module.prompt is not None:
-                        self.learner.model.module.prompt.process_task_count()
-                except:
-                    if self.learner.model.prompt is not None:
-                        self.learner.model.prompt.process_task_count()
 
             # evaluate acc
             metric_table['acc'][self.task_names[i]] = OrderedDict()
