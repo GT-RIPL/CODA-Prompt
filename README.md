@@ -18,7 +18,7 @@ We received feedback from other researchers that our orthogonality initializatio
 
 ## Setup
  * Install anaconda: https://www.anaconda.com/distribution/
- * set up conda environmet w/ python 3.8, ex: `conda create --name coda python=3.8`
+ * set up conda environment w/ python 3.8, ex: `conda create --name coda python=3.8`
  * `conda activate coda`
  * `sh install_requirements.sh`
  * <b>NOTE: this framework was tested using `torch == 2.0.0` but should work for previous versions</b>
@@ -27,7 +27,7 @@ We received feedback from other researchers that our orthogonality initializatio
  * Create a folder `data/`
  * **CIFAR 100**: should automatically be downloaded
  * **ImageNet-R**: retrieve from: https://github.com/hendrycks/imagenet-r
- * **DomainNet**: *coming soon*!
+ * **DomainNet**: retrieve from: http://ai.bu.edu/M3SDA/
 
 ## Training
 All commands should be run under the project root directory. **The scripts are set up for 4 GPUs** but can be modified for your hardware.
@@ -35,13 +35,14 @@ All commands should be run under the project root directory. **The scripts are s
 ```bash
 sh experiments/cifar100.sh
 sh experiments/imagenet-r.sh
+sh experiments/domainnet.sh
 ```
 
 ## Results
 Results will be saved in a folder named `outputs/`. To get the final average accuracy, retrieve the final number in the file `outputs/**/results-acc/global.yaml`
 
 ## Ready to create your next method?
-Create your new prompting method in `models/zoo.py`, which will require you to create a new class in `learners/prompt.py` as well. Hopefully, you can create your next method while only modifying these two files! I also reccomend you develop with the ImageNet-R benchmark and use fewer epochs for faster results. **Cannot wait to see what method you develop!**
+Create your new prompting method in `models/zoo.py`, which will require you to create a new class in `learners/prompt.py` as well. Hopefully, you can create your next method while only modifying these two files! I also recommend you develop with the ImageNet-R benchmark and use fewer epochs for faster results. **Cannot wait to see what method you develop!**
 
 ## Model backbone
 For fair comparisons with our method and results, please see models/zoo.py to take or replace the exact pre-trained vit_base_patch16_224 weights used in our repo.

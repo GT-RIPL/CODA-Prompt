@@ -42,6 +42,11 @@ class Trainer:
             num_classes = 200
             self.dataset_size = [224,224,3]
             self.top_k = 1
+        elif args.dataset == 'DomainNet':
+            Dataset = dataloaders.iDOMAIN_NET
+            num_classes = 345
+            self.dataset_size = [224,224,3]
+            self.top_k = 1
         else:
             raise ValueError('Dataset not implemented!')
 

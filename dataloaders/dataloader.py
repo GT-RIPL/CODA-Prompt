@@ -351,6 +351,20 @@ class iIMAGENET_R(iDataset):
     def extra_repr(self) -> str:
         return "Split: {split}".format(**self.__dict__)
 
+class iDOMAIN_NET(iIMAGENET_R):
+    base_folder = 'DomainNet'
+    im_size=224
+    nch=3
+    def load(self):
+        
+        # load splits from config file
+        if self.train or self.validation:
+            data_config = yaml.load(open('dataloaders/splits/domainnet_train.yaml', 'r'), Loader=yaml.Loader)
+        else:
+            data_config = yaml.load(open('dataloaders/splits/domainnet_test.yaml', 'r'), Loader=yaml.Loader)
+        self.data = data_config['data']
+        self.targets = data_config['targets']
+
 def jpg_image_to_array(image_path):
     """
     Loads JPEG image into 3D Numpy array of shape 

@@ -20,8 +20,10 @@ dataset_stats = {
                  'size' : 32}, 
     'ImageNet_R': {
                  'size' : 224}, 
+    'DomainNet': {
+                 'size' : 224},  
                 }
-
+                
 # transformations
 def get_transform(dataset='cifar100', phase='test', aug=True, resize_imnet=False):
     transform_list = []

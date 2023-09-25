@@ -313,6 +313,26 @@ class NormalNN(nn.Module):
     def pre_steps(self):
         pass
 
+class FinetunePlus(NormalNN):
+
+    def __init__(self, learner_config):
+        super(FinetunePlus, self).__init__(learner_config)
+
+    def update_model(self, inputs, targets, target_KD = None):
+
+        # get output
+        logits = self.forward(inputs)
+
+        # standard ce
+        logits[:,:self.last_valid_out_dim] = -float('inf')
+        dw_cls = self.dw_k[-1 * torch.ones(targets.size()).long()]
+        total_loss = self.criterion(logits, targets.long(), dw_cls)
+
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
+        return total_loss.detach(), logits
+
 def weight_reset(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
         m.reset_parameters()
