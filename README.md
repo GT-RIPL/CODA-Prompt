@@ -20,7 +20,7 @@ We received feedback from other researchers that our orthogonality initializatio
  * Install anaconda: https://www.anaconda.com/distribution/
  * set up conda environment w/ python 3.8, ex: `conda create --name coda python=3.8`
  * `conda activate coda`
- * `sh install_requirements.sh`
+ * `sh install-requirements.sh`
  * <b>NOTE: this framework was tested using `torch == 2.0.0` but should work for previous versions</b>
  
 ## Datasets
